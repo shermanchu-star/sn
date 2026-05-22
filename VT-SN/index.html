@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脑韵SN码库存追溯系统【最终完整版】</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:"Microsoft Yahei",sans-serif;background:#f5f7fa;color:#333;}
+        :root{
+            --primary:#1677ff;
+            --success:#00b42a;
+            --warning:#ff7d00;
+            --danger:#f53f3f;
+            --sidebar-bg:#001529;
+            --card-bg:#ffffff;
+            --text-gray:#666;
+            --border:#e5e6eb;
+        }
+        .login-wrap{width:100%;height:100vh;background:linear-gradient(135deg,#edf2fb,#e6edf7);display:flex;align-items:center;justify-content:center;}
+        .login-box{width:420px;background:#fff;padding:40px;border-radius:12px;box-shadow:0 8px 24px #00000015;}
+        .login-box h2{text-align:center;margin-bottom:30px;color:#1f2937;}
+        .login-item{margin:18px 0;}
+        .login-item input{width:100%;height:42px;border:1px solid var(--border);border-radius:6px;padding:0 12px;outline:none;transition:0.2s;}
+        .login-item input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(22,119,255,0.2);}
+        .login-btn{width:100%;height:44px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-size:16px;cursor:pointer;}
+        .hide{display:none !important;}
+        .sidebar{width:220px;background:var(--sidebar-bg);height:100vh;position:fixed;left:0;top:0;}
+        .sidebar-logo{height:60px;line-height:60px;text-align:center;color:#fff;font-size:18px;font-weight:bold;border-bottom:#1d2d3e 1px solid;}
+        .sidebar-menu div{color:#c0c4cc;padding:12px 20px;cursor:pointer;border-left:3px solid transparent;transition:0.2s;}
+        .sidebar-menu div:hover,.sidebar-menu div.active{background:rgba(255,255,255,0.05);color:#fff;border-left-color:var(--primary);}
+        .main-body{margin-left:220px;padding:20px;min-height:100vh;}
+        .card{background:var(--card-bg);border-radius:10px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px #00000008;border:1px solid var(--border);}
+        table{width:100%;border-collapse:collapse;margin:10px 0;border:1px solid var(--border);}
+        th,td{border:1px solid var(--border);padding:10px 12px;text-align:center;font-size:14px;}
+        th{background:#fafafa;font-weight:500;}
+        button{padding:7px 14px;border:none;border-radius:6px;cursor:pointer;font-size:14px;margin:2px;transition:0.2s;}
+        .btn-primary{background:var(--primary);color:#fff;}
+        .btn-success{background:var(--success);color:#fff;}
+        .btn-warning{background:var(--warning);color:#fff;}
+        .btn-danger{background:var(--danger);color:#fff;}
+        .btn-gray{background:#86909c;color:#fff;}
+        button:active{opacity:0.9;}
+        button:disabled{background:#cccccc !important;color:#999 !important;cursor:not-allowed;opacity:1 !important;}
+        .input{border:1px solid var(--border);padding:7px 12px;border-radius:6px;outline:none;margin:2px;transition:0.2s;}
+        .input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(22,119,255,0.2);}
+        .status-init{color:#9955ff;font-weight:bold;}
+        .status-in{color:var(--success);font-weight:bold;}
+        .status-out{color:var(--primary);font-weight:bold;}
+        .status-err{color:var(--warning);font-weight:bold;}
+        .status-del{color:var(--danger);font-weight:bold;}
+        .flex{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+        .w50{width:48%;}
+        .w-full{width:100%;}
+        .user-bar{display:flex;justify-content:space-between;padding:10px 20px;background:#fff;border-radius:8px;margin-bottom:15px;}
+        .tip-red{color:#f53f3f;font-size:13px;}
+        .tip-green{color:#00b42a;font-size:13px;}
+        .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:999;}
+        .modal-box{width:600px;background:#fff;padding:20px;border-radius:10px;max-height:80vh;overflow:auto;}
+    </style>
+</head>
+<body>
+    <div class="login-wrap" id="loginPage">
+        <div class="login-box">
+            <h2>脑韵SN追溯系统</h2>
+            <div class="login-item">
+                <input type="text" id="loginUser" placeholder="请输入用户名" value="admin">
+            </div>
+            <div class="login-item">
+                <input type="password" id="loginPwd" placeholder="请输入登录密码" value="123456">
+            </div>
+            <div class="login-item">
+                <button class="login-btn" onclick="userLogin()">立即登录</button>
+            </div>
+            <div style="color:#999;font-size:12px;text-align:center;margin-top:20px">
+                测试账号：<br/>管理员(admin/123456)｜全部权限<br/>操作员(user/123456)｜入库发货查询<br/>查看员(look/123456)｜仅查看导出
+            </div>
+        </div>
+    </div>
+
+    <div id="mainSystem" class="hide">
+        <div class="sidebar">
+            <div class="sidebar-logo">脑韵追溯系统</div>
+            <div class="sidebar-menu" id="sideMenu">
+                <div class="active" onclick="switchPage('home')" id="menu-home">📊 库存总览看板</div>
+                <div onclick="switchPage('product')" id="menu-product">📦 产品型号管理</div>
+                <div onclick="switchPage('factory')" id="menu-factory">🏭 工厂客户管理</div>
+                <div onclick="switchPage('instock')" id="menu-instock">📥 SN入库登记</div>
+                <div onclick="switchPage('outstock')" id="menu-outstock">📤 发货出库管理</div>
+                <div onclick="switchPage('trace')" id="menu-trace">🔍 SN追溯查询</div>
+                <div onclick="switchPage('error')" id="menu-error">⚠️ 异常作废管控</div>
+                <div onclick="switchPage('log')" id="menu-log">📜 操作日志审计</div>
+                <div onclick="switchPage('user')" id="menu-user">👤 账号权限管理</div>
+            </div>
+        </div>
+
+        <div class="main-body">
+            <div class="user-bar">
+                <div>当前登录：<span id="nowUser" style="color:#1677ff">管理员</span></div>
+                <div>
+                    <button class="btn-primary" id="editPwdBtn" onclick="editPwd()">修改密码</button>
+                    <button class="btn-danger" id="logoutBtn" onclick="logout()">退出登录</button>
+                </div>
+            </div>
+
+            <div id="page-home">
+                <div class="card">
+                    <h3>📊 库存数据总览【多维度统计对账】</h3>
+                    <div class="flex" style="margin:20px 0;">
+                        <div class="card" style="width:22%;background:#f4f0ff"><div>未入库</div><div style="font-size:24px;color:#9955ff" id="numInit">0</div></div>
+                        <div class="card" style="width:22%;background:#f0fdf4"><div>在库数量</div><div style="font-size:24px;color:#00b42a" id="numIn">0</div></div>
+                        <div class="card" style="width:22%;background:#eff6ff"><div>已发货</div><div style="font-size:24px;color:#1677ff" id="numOut">0</div></div>
+                        <div class="card" style="width:22%;background:#fffbeb"><div>异常品</div><div style="font-size:24px;color:#ff7d00" id="numErr">0</div></div>
+                        <div class="card" style="width:22%;background:#fef2f2;margin-top:10px"><div>已作废</div><div style="font-size:24px;color:#f53f3f" id="numDel">0</div></div>
+                    </div>
+                    <div class="flex">
+                        <input class="input" placeholder="产品型号筛选" id="searchModel">
+                        <input class="input" placeholder="工厂筛选" id="searchFac">
+                        <select class="input" id="searchStatus">
+                            <option value="">全部状态</option>
+                            <option value="未入库" class="opt-init">未入库</option>
+                            <option value="在库" class="opt-in">在库</option>
+                            <option value="已发货" class="opt-out">已发货</option>
+                            <option value="异常">异常</option>
+                            <option value="作废">作废</option>
+                        </select>
+                        <button class="btn-primary" onclick="countStock()">刷新统计</button>
+                        <button class="btn-success" id="exportStockBtn" onclick="exportStockTable()">导出库存表</button>
+                        <button class="btn-warning" id="backupBtn" onclick="autoBackup()">手动备份数据</button>
+                    </div>
+                    <table>
+                        <thead><tr><th>产品型号</th><th>产品版本</th><th>归属工厂</th><th>批次号</th><th>未入库</th><th>在库</th><th>已发</th><th>异常</th><th>作废</th><th>操作</th></tr></thead>
+                        <tbody id="stockTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="page-product" class="hide">
+                <div class="card">
+                    <h3>📦 产品型号字典【需求1：简化维护】</h3>
+                    <p class="tip-red">提示：管理员可新增/停用；操作员仅查看；无复杂BOM，仅基础字典</p>
+                    <div class="flex" style="margin:15px 0;">
+                        <input class="input" placeholder="产品型号名称" id="proName">
+                        <select class="input" id="proVer"><option>国内版本</option><option>海外版本</option></select>
+                        <input class="input" placeholder="产品备注" id="proRemark">
+                        <button class="btn-success" id="proAddBtn" onclick="addProduct()">新增产品</button>
+                        <button class="btn-gray" onclick="resetProduct()">清空输入</button>
+                    </div>
+                    <table>
+                        <thead><tr><th>型号ID</th><th>产品型号</th><th>产品版本</th><th>备注说明</th><th>状态</th><th>操作人</th><th>操作时间</th><th id="proOperTh">操作(编辑/停用)</th></tr></thead>
+                        <tbody id="proTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="page-factory" class="hide">
+                <div class="card">
+                    <h3>🏭 工厂/客户字典【需求2：简化维护】</h3>
+                    <p class="tip-red">提示：管理员维护、操作员查看；分类：国内/海外/B端/海外仓，杜绝手工输入混乱</p>
+                    <div class="flex" style="margin:15px 0;">
+                        <input class="input" placeholder="名称" id="cusName">
+                        <select class="input" id="cusType">
+                            <option>国内工厂</option>
+                            <option>海外工厂</option>
+                            <option>B端客户</option>
+                            <option>海外仓库</option>
+                        </select>
+                        <input class="input" placeholder="联系方式" id="cusTel">
+                        <button class="btn-success" id="cusAddBtn" onclick="addCus()">新增档案</button>
+                    </div>
+                    <table>
+                        <thead><tr><th>编号</th><th>名称</th><th>类型</th><th>联系方式</th><th>状态</th><th>操作人</th><th>操作时间</th><th id="cusOperTh">操作(编辑/停用)</th></tr></thead>
+                        <tbody id="cusTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="page-instock" class="hide">
+                <div class="card">
+                    <h3>📥 SN产品入库【需求3/4/5/6：扫码+批量+双重校验】</h3>
+                    <p class="tip-red">强制规则：SN固定12位、前缀SN开头、空值/重复/格式错误禁止入库；批量导入生成成功/失败清单，支持下载</p>
+                    <div class="flex">
+                        <div class="w50 card">
+                            <h4>扫码单个入库（需求4：扫码枪适配）</h4>
+                            <input class="input w-full" placeholder="扫描/输入12位SN码" id="inSn">
+                            <select class="input w-full" id="inPro"></select>
+                            <select class="input w-full" id="inFac"></select>
+                            <input class="input w-full" placeholder="填写生产批次" id="inBatch">
+                            <button class="btn-success w-full" onclick="singleInStock()">确认入库</button>
+                        </div>
+                        <div class="w50 card">
+                            <h4>Excel批量导入（需求3：失败清单下载）</h4>
+                            <p class="tip-green">模板格式：SN码,型号,批次,工厂ID</p>
+                            <input type="file" class="input w-full" id="excelFile" accept=".csv,.txt">
+                            <button class="btn-primary w-full" onclick="batchExcelInStock()">开始导入</button>
+                            <button class="btn-warning w-full" style="margin-top:5px;display:none" id="downloadFailBtn" onclick="downloadFailList()">下载失败清单</button>
+                        </div>
+                    </div>
+                    <h4>入库明细记录</h4>
+                    <table>
+                        <thead><tr><th>SN码</th><th>型号</th><th>工厂</th><th>批次</th><th>入库时间</th><th>操作人</th><th>状态</th><th id="inOperTh">操作</th></tr></thead>
+                        <tbody id="inTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="page-outstock" class="hide">
+                <div class="card">
+                    <h3>📤 产品发货出库【需求9/10：仅在库可发货+禁止重复发货】</h3>
+                    <p class="tip-red">强制校验：仅【在库】状态SN允许发货；已发货/异常/作废直接拦截并提示原因</p>
+                    <div class="flex">
+                        <div class="w50 card">
+                            <h4>扫码快速发货</h4>
+                            <input class="input w-full" placeholder="扫描SN码" id="outSn">
+                            <select class="input w-full" id="outCus"></select>
+                            <input class="input w-full" placeholder="发货备注" id="outRemark">
+                            <button class="btn-warning w-full" onclick="singleOutStock()">确认发货</button>
+                        </div>
+                        <div class="w50 card">
+                            <h4>批量发货+单据查询</h4>
+                            <textarea class="input w-full" rows="4" placeholder="批量输入SN码，换行分隔" id="batchOutText"></textarea>
+                            <button class="btn-warning w-full" onclick="batchOutStock()" style="margin-bottom:8px">批量一键发货</button>
+                            <input class="input w-full" placeholder="发货单号查询" id="searchOrder">
+                            <button class="btn-primary w-full" onclick="searchOrder()">查询单据</button>
+                        </div>
+                    </div>
+                    <div class="flex" style="margin:10px 0;">
+                        <button class="btn-success" onclick="exportOutStock()">导出全部发货记录</button>
+                    </div>
+                    <table>
+                        <thead><tr><th>发货单号</th><th>SN码</th><th>收货客户</th><th>发货时间</th><th>操作人</th><th>备注</th><th>状态</th></tr></thead>
+                        <tbody id="outTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="page-trace" class="hide">
+                <div class="card">
+                    <h3>🔍 SN全生命周期追溯【需求11/12：追溯+筛选导出】</h3>
+                    <div class="flex">
+                        <input class="input" placeholder="精准输入SN码" id="traceSn">
+                        <select class="input" id="traceStatus">
+                            <option value="">全部状态</option>
+                            <option value="未入库" class="opt-init">未入库</option>
+                            <option value="在库" class="opt-in">在库</option>
+                            <option value="已发货" class="opt-out">已发货</option>
+                            <option value="异常">异常</option>
+                            <option value="作废">作废</option>
+                        </select>
+                        <input class="input" placeholder="筛选工厂" id="traceFac">
+                        <input class="input" placeholder="筛选批次" id="traceBatch">
+                        <button class="btn-primary" onclick="traceSnInfo()">一键追溯</button>
+                        <button class="btn-success" id="exportAllSnBtn" onclick="exportAllSn()">导出筛选数据</button>
+                    </div>
+                    <div class="card" id="traceInfo" style="background:#f8fafc;white-space:pre-line">请输入SN码，查询完整流转记录</div>
+                    <table>
+                        <thead><tr><th>SN码</th><th>产品型号</th><th>工厂</th><th>批次</th><th>当前状态</th><th>流向客户</th><th>最新时间</th></tr></thead>
+                        <tbody id="traceTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="page-error" class="hide">
+                <div class="card">
+                    <h3>⚠️ 异常/作废管控【需求8/14：状态禁止乱跳+强制备注】</h3>
+                    <p class="tip-red">流转规则：未入库→在库→已发货；异常/作废不可逆；必须填写原因，禁止物理删除；操作员仅标记异常</p>
+                    <div class="flex">
+                        <input class="input" placeholder="输入处理SN码" id="errSn">
+                        <select class="input" id="errType"><option>标记异常品</option><option>永久作废</option></select>
+                        <input class="input" placeholder="详细原因备注（必填）" id="errReason">
+                        <button class="btn-danger" onclick="addErr()">提交处理</button>
+                    </div>
+                    <table>
+                        <thead><tr><th>处理编号</th><th>SN码</th><th>处理类型</th><th>问题原因</th><th>操作人</th><th>处理时间</th></tr></thead>
+                        <tbody id="errTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="page-log" class="hide">
+                <div class="card">
+                    <h3>📜 全局操作审计日志【需求13：操作前后变更记录】</h3>
+                    <p class="tip-red">日志包含：入库、发货、作废、异常、资料修改，记录操作前后数据变更，管理员可删除/导出</p>
+                    <div class="flex">
+                        <input class="input" placeholder="搜索操作内容" id="logSearch">
+                        <button class="btn-primary" onclick="searchLog()">筛选日志</button>
+                        <button class="btn-success" id="exportLogBtn" onclick="exportLog()">导出全部日志</button>
+                    </div>
+                    <table>
+                        <thead><tr><th>操作人</th><th>操作类型</th><th>操作对象</th><th>变更详情(前后对比)</th><th>操作时间</th><th id="logOperTh">删除记录</th></tr></thead>
+                        <tbody id="logTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="page-user" class="hide">
+                <div class="card">
+                    <h3>👤 账号角色权限管理【需求15：三类角色隔离】</h3>
+                    <div class="card" style="background:#f0fdf4">
+                        <p>✅ <strong>管理员</strong>：全部权限（维护+操作+查看+删除）</p>
+                        <p>✅ <strong>操作员</strong>：入库/发货/查询，不可删除、不可作废、不可维护基础资料</p>
+                        <p>✅ <strong>查看员</strong>：仅查询+导出，无任何编辑操作权限</p>
+                    </div>
+                    <div class="flex">
+                        <input class="input" placeholder="用户名" id="userName">
+                        <input class="input" placeholder="登录密码" id="userPwd">
+                        <select class="input" id="userRole"><option>管理员</option><option>操作员</option><option>查看员</option></select>
+                        <button class="btn-success" onclick="addUser()">新增账号</button>
+                    </div>
+                    <table>
+                        <thead><tr><th>账号ID</th><th>用户名</th><th>角色权限</th><th>账号状态</th><th id="userOperTh">操作</th></tr></thead>
+                        <tbody id="userTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="failModal">
+        <div class="modal-box">
+            <h4>导入失败清单</h4>
+            <div id="failListText" style="margin:10px 0;white-space:pre-line"></div>
+            <button class="btn-primary" onclick="closeFailModal()">关闭</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
